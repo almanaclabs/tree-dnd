@@ -1,5 +1,11 @@
 # @atlaskit/tree
 
+## 8.4.1
+
+### Minor Changes
+
+- Add drop placeholder ([reference](https://github.com/atlassian/react-beautiful-dnd/issues/1782#issuecomment-598318622))
+
 ## 8.4.0
 
 ### Minor Changes
