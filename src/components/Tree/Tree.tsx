@@ -367,7 +367,7 @@ export default class Tree extends Component<Props, State> {
                       left: dropPlaceholder.left,
                       height: dropPlaceholder.height,
                       width: dropPlaceholder.width,
-                      position: 'absolute'
+                      position: 'fixed'
                     }}
                   />
                 )}
