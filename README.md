@@ -1,4 +1,4 @@
-# React Tree
+# Tree DnD
 
 📌 This is a fork of `@atlaskit/tree` ([main page][0], [source][1]).
 The extra features are:
