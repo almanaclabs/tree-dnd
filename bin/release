@@ -1,0 +1,13 @@
+#!/bin/sh
+
+VERSION=`cat ./package.json | grep -m 1 version | sed 's/[^0-9.]//g'`
+
+git checkout -b release
+yarn install
+yarn build
+git add --force dist
+git commit -m "Release $VERSION"
+git tag -m '' $VERSION
+git push origin $VERSION
+git checkout main
+git branch -D release
