@@ -38,7 +38,7 @@ export type Props = {
   /** Boolean to turn on hovering while dragging */
   isNestingEnabled: boolean;
   /** Render function for the dropPlaceholder */
-  renderDropPlaceholder: (attrs: DropPlaceHolderAttrs) => ReactNode;
+  renderDropPlaceholder: (attrs: DropPlaceHolderAttrs, horizontalLevel?: number) => ReactNode;
 };
 
 export type State = {
@@ -46,7 +46,8 @@ export type State = {
   flattenedTree: FlattenedTree;
   // Id of the currently dragged item
   draggedItemId?: ItemId;
-  dropPlaceholderAttrs?: DropPlaceHolderAttrs
+  dropPlaceholderAttrs?: DropPlaceHolderAttrs;
+  horizontalLevel?: number;
 };
 
 export type Combine = {

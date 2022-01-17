@@ -43,6 +43,7 @@ export default class Tree extends Component<Props, State> {
     flattenedTree: [],
     draggedItemId: undefined,
     dropPlaceholderAttrs: undefined,
+    horizontalLevel: undefined,
   };
 
   // State of dragging.
@@ -79,34 +80,25 @@ export default class Tree extends Component<Props, State> {
     return tree;
   }
 
-  elementBox = (el: Element | undefined) => {
-    if (!el) return undefined;
-
-    const {
-      marginBox: { top, height, width },
-      contentBox: { left },
-      padding: { left: leftPadding }
-    } = getBox(el)
-    return { top, left, height, width: width - leftPadding }
-  }
-
-  dropPlaceholderPos = (draggable: Element, index: number, offset: number = 0) => {
+  dropPlaceholderPos = (draggableId: ItemId, sourceIdx: number, destinationIdx: number = undefined) => {
     // skip unnecessary routine
     if (!this.props.renderDropPlaceholder) return undefined
 
+    const draggable = this.itemsElement[draggableId]
+    if (!destinationIdx) {
+      const { marginBox: { top, left, height, width } } = getBox(draggable)
+      return { top, left, height, width }
+    }
+
     const children = Array.from(this.containerElement.children)
+    children.splice(sourceIdx, 1)
     const { marginBox: { left, top: rootTop } } = getBox(this.containerElement)
     const top = children
-      .slice(0, index)
+      .slice(0, destinationIdx)
       .reduce((acc, child: any) => acc + getBox(child).marginBox.height, rootTop)
 
     const { marginBox: { height, width } } = getBox(draggable)
-    return {
-      top,
-      left: left + offset,
-      height,
-      width: width - offset
-    }
+    return { top, left, height, width }
   }
 
   onDragStart = (result: DragStart) => {
@@ -119,10 +111,7 @@ export default class Tree extends Component<Props, State> {
 
     this.setState({
       draggedItemId: result.draggableId,
-      dropPlaceholderAttrs: this.dropPlaceholderPos(
-        this.itemsElement[result.draggableId],
-        result.source.index
-      )
+      dropPlaceholderAttrs: this.dropPlaceholderPos(result.draggableId, result.source.index, result.source.index)
     });
 
     if (onDragStart) {
@@ -140,21 +129,8 @@ export default class Tree extends Component<Props, State> {
     this.expandTimer.stop();
 
     if (update.destination) {
-      const updateDragState: DragState = {
-        ...this.dragState!,
-        source: update.source,
-        destination: update.destination,
-        combine: update.combine,
-      };
-
-      const { destinationPath } = calculateFinalDropPositions(tree, flattenedTree, updateDragState);
-
       this.setState({
-        dropPlaceholderAttrs: this.dropPlaceholderPos(
-          this.itemsElement[update.draggableId],
-          update.destination.index,
-          (destinationPath.length - 1) * this.props.offsetPerLevel,
-        )
+        dropPlaceholderAttrs: this.dropPlaceholderPos(update.draggableId, update.source.index, update.destination.index)
       });
     }
 
@@ -166,7 +142,7 @@ export default class Tree extends Component<Props, State> {
       );
 
       this.setState({
-        dropPlaceholderAttrs: this.elementBox(this.itemsElement[draggableId])
+        dropPlaceholderAttrs: this.dropPlaceholderPos(draggableId, update.source.index)
       });
 
       if (item && this.isExpandable(item)) {
@@ -215,13 +191,21 @@ export default class Tree extends Component<Props, State> {
 
   onPointerMove = () => {
     const level = this.getDroppedLevel()
-    console.log('level', level)
-    if (this.dragState) {
-      this.dragState = {
-        ...this.dragState,
-        horizontalLevel: this.getDroppedLevel(),
-      };
+    if (!this.dragState) return
+
+    const { combine, source, destination } = this.dragState
+    const { flattenedTree, horizontalLevel } = this.state
+
+    // Updates the horizontalLevel state used as parameter on renderDropPlaceholder
+    let path
+    if (combine) {
+      path = flattenedTree.find(item => item.item.id === combine.draggableId).path
+    } else if (destination && level != horizontalLevel) {
+      path = getDestinationPath(flattenedTree, source.index, destination.index, level)
     }
+    if (path && path.length !== horizontalLevel) this.setState({ horizontalLevel: path.length })
+
+    this.dragState = { ...this.dragState, horizontalLevel: level };
   };
 
   calculateEffectivePath = (
@@ -361,7 +345,7 @@ export default class Tree extends Component<Props, State> {
 
   render() {
     const { isNestingEnabled, renderDropPlaceholder } = this.props;
-    const { dropPlaceholderAttrs } = this.state;
+    const { dropPlaceholderAttrs, horizontalLevel } = this.state;
     const renderedItems = this.renderItems();
 
     return (
@@ -392,7 +376,7 @@ export default class Tree extends Component<Props, State> {
                 {renderDropPlaceholder &&
                   dropPlaceholderAttrs &&
                   snapshot.isDraggingOver &&
-                  renderDropPlaceholder(dropPlaceholderAttrs)}
+                  renderDropPlaceholder(dropPlaceholderAttrs, horizontalLevel)}
               </div>
             );
           }}

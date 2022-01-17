@@ -47,5 +47,5 @@ export const calculateFinalDropPositions = (
   const destinationPosition: TreeDestinationPosition = {
     ...getTreePosition(tree, destinationPath),
   };
-  return { sourcePosition, destinationPosition, destinationPath };
+  return { sourcePosition, destinationPosition };
 };
