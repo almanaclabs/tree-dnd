@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, CSSProperties } from 'react';
 import {
   DraggableLocation,
   DraggableId,
@@ -37,8 +37,8 @@ export type Props = {
   isDragEnabled: boolean | ((item: TreeItem) => boolean);
   /** Boolean to turn on hovering while dragging */
   isNestingEnabled: boolean;
-  /** String for the drop placeholder class name */
-  dropPlaceholderClassName: string;
+  /** Render function for the dropPlaceholder */
+  renderDropPlaceholder: (attrs: DropPlaceHolderAttrs) => ReactNode;
 };
 
 export type State = {
@@ -46,12 +46,7 @@ export type State = {
   flattenedTree: FlattenedTree;
   // Id of the currently dragged item
   draggedItemId?: ItemId;
-  dropPlaceholder?: {
-    top: number,
-    left: number,
-    width: number,
-    height: number,
-  }
+  dropPlaceholderAttrs?: DropPlaceHolderAttrs
 };
 
 export type Combine = {
@@ -71,3 +66,10 @@ export type DragState = {
   // Combine for nesting operation
   combine?: Combine;
 };
+
+type DropPlaceHolderAttrs = {
+  top: number,
+  left: number,
+  width: number,
+  height: number,
+}

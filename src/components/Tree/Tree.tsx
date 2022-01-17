@@ -25,24 +25,6 @@ import {
 } from '../../utils/flat-tree';
 import DelayedFunction from '../../utils/delayed-function';
 
-function elementBox(el: Element | undefined) {
-  if (!el) return undefined;
-
-  const { marginBox: { top, left, height, width } } = getBox(el)
-  return { top, left, height, width }
-}
-
-function dropPlaceholderPos(root: Element, draggable: Element, index: number) {
-  const children = Array.from(root.children)
-  const { marginBox: { left, top: rootTop } } = getBox(root)
-  const top = children
-    .slice(0, index)
-    .reduce((acc, child: any) => acc + getBox(child).marginBox.height, rootTop)
-
-  const { marginBox: { height, width } } = getBox(draggable)
-  return { top, left, height, width }
-}
-
 export default class Tree extends Component<Props, State> {
   static defaultProps = {
     tree: { children: [] },
@@ -54,13 +36,13 @@ export default class Tree extends Component<Props, State> {
     offsetPerLevel: 35,
     isDragEnabled: false,
     isNestingEnabled: false,
-    dropPlaceholderClassName: '',
+    dropPlaceholder: undefined,
   };
 
   state = {
     flattenedTree: [],
     draggedItemId: undefined,
-    dropPlaceholder: undefined,
+    dropPlaceholderAttrs: undefined,
   };
 
   // State of dragging.
@@ -97,6 +79,36 @@ export default class Tree extends Component<Props, State> {
     return tree;
   }
 
+  elementBox = (el: Element | undefined) => {
+    if (!el) return undefined;
+
+    const {
+      marginBox: { top, height, width },
+      contentBox: { left },
+      padding: { left: leftPadding }
+    } = getBox(el)
+    return { top, left, height, width: width - leftPadding }
+  }
+
+  dropPlaceholderPos = (draggable: Element, index: number, offset: number = 0) => {
+    // skip unnecessary routine
+    if (!this.props.renderDropPlaceholder) return undefined
+
+    const children = Array.from(this.containerElement.children)
+    const { marginBox: { left, top: rootTop } } = getBox(this.containerElement)
+    const top = children
+      .slice(0, index)
+      .reduce((acc, child: any) => acc + getBox(child).marginBox.height, rootTop)
+
+    const { marginBox: { height, width } } = getBox(draggable)
+    return {
+      top,
+      left: left + offset,
+      height,
+      width: width - offset
+    }
+  }
+
   onDragStart = (result: DragStart) => {
     const { onDragStart } = this.props;
     this.dragState = {
@@ -107,7 +119,10 @@ export default class Tree extends Component<Props, State> {
 
     this.setState({
       draggedItemId: result.draggableId,
-      dropPlaceholder: dropPlaceholderPos(this.containerElement, this.itemsElement[result.draggableId], result.source.index)
+      dropPlaceholderAttrs: this.dropPlaceholderPos(
+        this.itemsElement[result.draggableId],
+        result.source.index
+      )
     });
 
     if (onDragStart) {
@@ -116,7 +131,7 @@ export default class Tree extends Component<Props, State> {
   };
 
   onDragUpdate = (update: DragUpdate) => {
-    const { onExpand } = this.props;
+    const { onExpand, tree } = this.props;
     const { flattenedTree } = this.state;
     if (!this.dragState) {
       return;
@@ -125,8 +140,21 @@ export default class Tree extends Component<Props, State> {
     this.expandTimer.stop();
 
     if (update.destination) {
+      const updateDragState: DragState = {
+        ...this.dragState!,
+        source: update.source,
+        destination: update.destination,
+        combine: update.combine,
+      };
+
+      const { destinationPath } = calculateFinalDropPositions(tree, flattenedTree, updateDragState);
+
       this.setState({
-        dropPlaceholder: dropPlaceholderPos(this.containerElement, this.itemsElement[update.draggableId], update.destination.index)
+        dropPlaceholderAttrs: this.dropPlaceholderPos(
+          this.itemsElement[update.draggableId],
+          update.destination.index,
+          (destinationPath.length - 1) * this.props.offsetPerLevel,
+        )
       });
     }
 
@@ -138,7 +166,7 @@ export default class Tree extends Component<Props, State> {
       );
 
       this.setState({
-        dropPlaceholder: elementBox(this.itemsElement[draggableId])
+        dropPlaceholderAttrs: this.elementBox(this.itemsElement[draggableId])
       });
 
       if (item && this.isExpandable(item)) {
@@ -171,7 +199,7 @@ export default class Tree extends Component<Props, State> {
 
     this.setState({
       draggedItemId: undefined,
-      dropPlaceholder: undefined,
+      dropPlaceholderAttrs: undefined,
     });
 
     const { sourcePosition, destinationPosition } = calculateFinalDropPositions(
@@ -186,6 +214,8 @@ export default class Tree extends Component<Props, State> {
   };
 
   onPointerMove = () => {
+    const level = this.getDroppedLevel()
+    console.log('level', level)
     if (this.dragState) {
       this.dragState = {
         ...this.dragState,
@@ -330,8 +360,8 @@ export default class Tree extends Component<Props, State> {
   };
 
   render() {
-    const { isNestingEnabled, dropPlaceholderClassName } = this.props;
-    const { dropPlaceholder } = this.state;
+    const { isNestingEnabled, renderDropPlaceholder } = this.props;
+    const { dropPlaceholderAttrs } = this.state;
     const renderedItems = this.renderItems();
 
     return (
@@ -359,18 +389,10 @@ export default class Tree extends Component<Props, State> {
               >
                 {renderedItems}
                 {provided.placeholder}
-                {dropPlaceholder && snapshot.isDraggingOver && (
-                  <div
-                    className={dropPlaceholderClassName}
-                    style={{
-                      top: dropPlaceholder.top,
-                      left: dropPlaceholder.left,
-                      height: dropPlaceholder.height,
-                      width: dropPlaceholder.width,
-                      position: 'fixed'
-                    }}
-                  />
-                )}
+                {renderDropPlaceholder &&
+                  dropPlaceholderAttrs &&
+                  snapshot.isDraggingOver &&
+                  renderDropPlaceholder(dropPlaceholderAttrs)}
               </div>
             );
           }}

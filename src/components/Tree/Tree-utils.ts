@@ -19,6 +19,7 @@ export const calculateFinalDropPositions = (
 ): {
   sourcePosition: TreeSourcePosition;
   destinationPosition?: TreeDestinationPosition;
+  destinationPath?: Path;
 } => {
   const { source, destination, combine, horizontalLevel } = dragState;
   const sourcePath: Path = getSourcePath(flattenedTree, source.index);
@@ -46,5 +47,5 @@ export const calculateFinalDropPositions = (
   const destinationPosition: TreeDestinationPosition = {
     ...getTreePosition(tree, destinationPath),
   };
-  return { sourcePosition, destinationPosition };
+  return { sourcePosition, destinationPosition, destinationPath };
 };
