@@ -85,7 +85,7 @@ export default class Tree extends Component<Props, State> {
     if (!this.props.renderDropPlaceholder) return undefined
 
     const draggable = this.itemsElement[draggableId]
-    if (!destinationIdx) {
+    if (destinationIdx === undefined) {
       const { marginBox: { top, left, height, width } } = getBox(draggable)
       return { top, left, height, width }
     }
