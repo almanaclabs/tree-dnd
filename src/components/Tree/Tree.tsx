@@ -86,7 +86,8 @@ export default class Tree extends Component<Props, State> {
 
     const draggable = this.itemsElement[draggableId]
     if (destinationIdx === undefined) {
-      const { marginBox: { top, left, height, width } } = getBox(draggable)
+      const { borderBox: { top, height } } = getBox(draggable)
+      const { borderBox: { left, width } } = getBox(draggable.parentElement)
       return { top, left, height, width }
     }
 
@@ -97,8 +98,9 @@ export default class Tree extends Component<Props, State> {
       .slice(0, destinationIdx)
       .reduce((acc, child: any) => acc + getBox(child).marginBox.height, rootTop)
 
+    const extraMargin = getBox(children[destinationIdx]).margin
     const { marginBox: { height, width } } = getBox(draggable)
-    return { top, left, height, width }
+    return { top: top + extraMargin.top + extraMargin.bottom, left, height, width }
   }
 
   onDragStart = (result: DragStart) => {

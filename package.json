@@ -1,6 +1,6 @@
 {
   "name": "tree-dnd",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A React Component for displaying expandable and sortable tree hierarchies",
   "author": "Atlassian Pty Ltd",
   "contributors": [
